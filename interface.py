@@ -1,3 +1,59 @@
+"""
+Mit dieser Zusatzsoftware (480088-9902) wird eine komfortable
+Kopplung des LSM mit einem externen Rechnersystem möglich.
+Sie gestattet die Fernsteuerbarkeit des LSM in allen Funktionen
+und bietet verschiedene Zusatzfunktionen, die sonst nicht zur
+Verfügung stehen (z.B. Feinpositionierung der Scanner, Arbeiten
+mit Fenstern (area of interest = AOI) ).
+Diese Zusatzsoftware umfaßt folgenden Befehlsvorrat enschließ-
+lich der in der Grundsoftware enthaltenen Befehle:
+
+¹⁾ Wertebereich 0 ... 4095
+    Umrechnung vom Display-Wert (0 ... 999):
+    Eingabewert nn = (4095/999)*Displaywert
+
+²⁾ Feinpositionierung ist möglich (Bereich 0x0 ... 0x0FFF).
+    Soll eine Spalte aus dem fertig beschrieben Bildspeicher
+    angesprochen werden (Speicherspalten 1 ... 512), ist die
+    Position einzugeben entsprechend der Beziehung
+    X-Position nn = (Speicherspalten - 1)x7.1
+   Beispiel:
+    Zum Ansprechen der 15. Speicherspalte ist
+    nn(dezimal) = 99.4, nn(hex) = 0x0063
+   Voreinstellung:
+    0x0800.
+   Bemerkung:
+    Aus technischen Gründen ist die genaue Position von der
+    Geschwindigkeit des Scanners abhängig. Mit zunehmender
+    Scangeschwindigkeit tritt ein wachsender x-Offset-Wert auf.
+
+³⁾ Feinpositionierung ist möglich (Bereich 0x0 ... 0x0FFF).
+    Soll eine Spalte aus dem fertig beschrieben Bildspeicher
+    angesprochen werden (Speicherspalten 1 ... 512), ist die
+    Position einzugeben entsprechend der Beziehung
+    Y-Position nn = (Speicherspalten - 1)x8
+   Beispiel:
+    15. Speicherzeile ist nn(dezimal) = 112 bzw. nn(hex) = 0x0070
+   Voreinstellung:
+    0x0800.
+   Bemerkung:
+    Wegen deutlich kleineren Geschwindigkeit des y-
+    Scanners tritt hier bei ²⁾ angesprochene Scanoffset nicht in
+    Erscheinung
+
+⁴⁾ Feinpositionierung ist möglich (Bereich 0 ... 0x0E00)
+    X-Position nn = (Speicherspalte -1)x8;
+    Speicherspalte = 1 ... 449
+   Voreinstellung:
+    0x0700.
+
+
+⁵⁾ Feinpositionierung ist möglich (Bereich 0 ... 0x0E00)
+    Y-Position nn = (Speicherspalte -1)x8;
+    Speicherspalte = 1 ... 449
+   Voreinstellung:
+    0x0700.
+"""
 from typing import Union, Protocol
 
 class Hex(Protocol):
@@ -159,9 +215,70 @@ def image_scan_512_synced_to_pc():
     """
     conn.write(0x72)
 
+def transfer_line(linenumber):
+    """
+    Zeilennummer übertragen ³⁾
+    """
+    high_byte = linenumber >> 8   # shift right 8 bits to get the upper byte
+    low_byte = linenumber & 0xFF  # mask to get the lower byte
+    conn.write(0xE2, high_byte, low_byte)
 
+def line_scan_to_picture_memory():
+    """
+    Zeile scannen und in den Bildspeicher übertragen
+    (sichtbar).
+    """
+    conn.write(0x73)
 
+def line_scan_to_interface_memory():
+    """
+    Zeile scannen und in das Interface-RAM übertragen
+    (unsichtbar).
+    """
+    conn.write(0x74)
 
+def line_interface_memory_to_pc():
+    """
+    Zeile im Interface-RAM zum ext. Rechner senden
+    (512 Byte).
+    """
+    conn.write(0x78)
+
+def line_picture_memory_to_pc():
+    """
+    Zeile im LSM-Bildspeicher zum ext. Rechner senden
+    (512 Byte).
+    """
+    conn.write(0x77)
+
+def line_pc_to_picture_memory():
+    """
+    Zeile vom ext. Rechner zum LSM-Bildspeicher
+    übertragen.
+    """
+    conn.write(0x75)
+
+def scan_line_synced_to_pc():
+    """
+    Zeile scannen und synchron zum ext. Rechner senden.
+    """
+    conn.write(0x75)
+
+def set_AOI_position_x(value):
+    """
+    AOI-Position x ⁴⁾
+    """
+    high_byte = value >> 8   # shift right 8 bits to get the upper byte
+    low_byte = value & 0xFF  # mask to get the lower byte
+    conn.write(0xE4, high_byte, low_byte)
+
+def set_AOI_position_y(value):
+    """
+    AOI-Position y ⁵⁾
+    """
+    high_byte = value >> 8   # shift right 8 bits to get the upper byte
+    low_byte = value & 0xFF  # mask to get the lower byte
+    conn.write(0xE5, high_byte, low_byte)
 
 
 def pc_transfer_from_picture_memory(
@@ -178,3 +295,5 @@ def pc_transfer_from_picture_memory(
             c>0: DMA-Übertragung mit festem Übertragungstakt
     """
     conn.write(0x94, pic_mem_address, block_length, period)
+
+
