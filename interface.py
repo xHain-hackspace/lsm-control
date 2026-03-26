@@ -53,7 +53,85 @@ lich der in der Grundsoftware enthaltenen Befehle:
     Speicherspalte = 1 ... 449
    Voreinstellung:
     0x0700.
+
+⁶⁾ LSM-Status: 20 Byte werden gesendet
+    1.  Byte: Kennung 0xA6
+    2.  Byte: Funktion
+         0 = Frame
+         1 = Linie
+         2 = Spot
+         3 = _
+         4 = Overlay
+         5 = Averaging
+         6 = Standby
+         7 = -
+         8 = Fastscan
+    3.  Byte:
+         0 = Live
+         1 = Store
+    4.  Byte: Betriebsart
+         1 = Konvent. Auflicht # TODO: Für was steht Konvent.
+         2 = Konvent. Durchlicht
+         3 = Floureszenz
+         4 = LSM Auflicht
+         5 = LSM Durchlicht
+         6 = OBIC # TODO: Für was steht OBIC
+    5.  Byte: Tastaturstatus
+         5  = Zoom
+         6  = Lens
+         7  = Filter
+         26 = X
+         28 = F
+    6.  Byte: Laser (z. Zt. nur Laser1/Laser2)
+    7.  Byte: tscan
+         0 = 2 sec
+         1 = 8 sec
+    8.  Byte: Confoc.
+         0 = off
+         1 = on
+    9.  Byte: Color
+         0 = off
+         1 = on
+    10. Byte: TV
+         0 = off
+         1 = on
+    11. Byte: Contrast rücklesen
+         (höherwertiges Byte)
+    12. Byte: Contrast rücklesen
+         (niederwertiges Byte)
+    13. Byte: Brightness rücklesen
+         (höherwertiges Byte)
+    14. Byte: Brightness rücklesen
+         (niederwertiges Byte)
+    15. Byte: Zoomwert
+         (20 - 160)
+    16. Filterstellung
+         (0 - 3 bzw. 0 - 4)
+    17. Byte: Revolverposition
+         (1...5)
+    18. Byte: Optionen
+         76543210
+         XXZSMMMM
+
+         0M & 1M:
+             0b01: 2 MIPs 
+             0b00: 1 MIP
+         2M:
+             0b1: Master MIP 1024
+             0b0: Master MIP 512
+         3M:
+             0b1: Master MIP 1024
+             0b0: Master MIP 512
+         4S: SCSI-Schnittstelle:
+             0b1: vorhanden
+             0b0: nicht vorhanden
+         5Z: z-Motor:
+             0b1: vorhanden
+             0b0: nicht vorhanden
+    19. Byte: Reserve
+    20. Byte: Reserve
 """
+
 from typing import Union, Protocol
 
 class Hex(Protocol):
@@ -68,7 +146,6 @@ class Int(int):
         # specialized type. For basic hints, returning 
         # 'int' ensures compatibility.
         return int
-
 
 
 class Connection:
@@ -215,6 +292,8 @@ def image_scan_512_synced_to_pc():
     """
     conn.write(0x72)
 
+
+
 def transfer_line(linenumber):
     """
     Zeilennummer übertragen ³⁾
@@ -264,6 +343,8 @@ def scan_line_synced_to_pc():
     """
     conn.write(0x75)
 
+
+
 def set_AOI_position_x(value):
     """
     AOI-Position x ⁴⁾
@@ -279,6 +360,41 @@ def set_AOI_position_y(value):
     high_byte = value >> 8   # shift right 8 bits to get the upper byte
     low_byte = value & 0xFF  # mask to get the lower byte
     conn.write(0xE5, high_byte, low_byte)
+
+def scan_AOI_to_interface_memory():
+    """
+    AOI scannen und in das Interface-RAM übetragen
+    """
+    conn.write(0x7A)
+
+def AOI_interface_memory_to_pc():
+    """
+    AOI im Interface-RAM zum externen Rechner senden
+    (64x64 Byte)
+    """
+    conn.write(0x7B)
+
+def scan_AOI_to_picture_memory():
+    """
+    AOI scannen und in den Bildspeicher übetragen
+    (für Testzwecke)
+    """
+    conn.write(0x90)
+
+def AOI_pc_to_picture_memory():
+    """
+    AOI vom externen Rechner zum LSM-Bildspeicher übetragen
+    (für Testzwecke)
+    """
+    conn.write(0x91)
+
+def scan_AOI_synced_to_pc():
+    """
+    AOI scannen und synchron zum externen Rechner senden
+    """
+    conn.write(0x79)
+
+
 
 
 def pc_transfer_from_picture_memory(
