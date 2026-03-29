@@ -1,6 +1,11 @@
 # lsm-control
 Control software for a Zeiss LSM 21 / 31
 
+## Hardware Notes
+* Zeiss LSM
+* USB GPIB Adapter
+  * https://github.com/xyphro/UsbGpib
+* Raspberry Pi
 
 ## Setup Notes
 Install python modules:
