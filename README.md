@@ -11,7 +11,9 @@ Control software for a Zeiss LSM 21 / 31
 Install python modules:
 
 
-```pip install pyvisa pyvisa-py pyusb```
+```sudo apt install libjpeg-dev zlib1g-dev```
+
+```pip install pyvisa pyvisa-py pyusb pillow```
 
 Possibly also psutil zeroconf to avoid warnings when listing ressources.
 

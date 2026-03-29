@@ -1,48 +1,44 @@
-# connects to the LSM, requests an image, reads it, and prints it as greyscale in the terminal. 
-# It also saves the raw image data to a file named "image.bin". Note that the LSM must be connected
-# and properly configured for this code to work.
+# connects to the LSM, requests an image, reads it, saves the file.
+# Note that the LSM must be connected and properly configured for this code to work.
 import sys
 import pyvisa
-
-def print_greyscale(data: bytes, width: int = 512, height: int = 512):
-    """
-    Renders a greyscale byte array to the terminal using ANSI true-color
-    background escape codes. Each pixel is one space character.
-    """
-    assert len(data) == width * height, \
-        f"Expected {width * height} bytes, got {len(data)}"
-
-    reset = "\033[0m"
-    rows = []
-    for y in range(height):
-        parts = []
-        for x in range(width):
-            v = data[y * width + x]
-            parts.append(f"\033[48;2;{v};{v};{v}m ")
-        rows.append("".join(parts) + reset)
-
-    sys.stdout.write("\n".join(rows) + "\n")
+from PIL import Image
+from datetime import datetime
     
 rm = pyvisa.ResourceManager()
-# rm.list_resources()
+
+print("Available resources:")
+print(rm.list_resources())
+
 print("Opening LSM...")
 lsm = rm.open_resource('USB0::1003::8293::GPIB_04_95032313036351211131::0::INSTR')
-lsm.timeout = 2000
-#lsm.write_raw(b'\xf0\x8a') # clear screen
+lsm.timeout = 5000
 
-print("Requesting image")
+print("Requesting image...")
 lsm.write_raw(b'\xf0\xf5\x71') # enable interface, no dma, request image data
 print("Reading...")
-data = lsm.read_bytes(512*512,512) # read image data in 512 byte chunks (chunksize cant be too large or it wont work)
+total_bytes = 512 * 512
+chunk_size = 512
+data = b''
+bytes_read = 0
+
+while bytes_read < total_bytes:
+    chunk = lsm.read_bytes(min(chunk_size, total_bytes - bytes_read))
+    data += chunk
+    bytes_read += len(chunk)
+    progress = (bytes_read / total_bytes) * 100
+    print(f"Progress: {progress:.1f}% ({bytes_read}/{total_bytes} bytes)", end='\r')
+
+print()  # New line after progress
+
 print("Done. Closing LSM...")
 lsm.write_raw(b'\xf1') # disable interface
-
 lsm.close()
 
-print(data)
-
-print_greyscale(data)
-
-with open("image.bin", "wb") as filed:
-    filed.write(data)
-    
+# Convert to PNG
+print("Converting to PNG...")
+img = Image.frombytes('L', (512, 512), data)
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+png_filename = f"lsm_image_{timestamp}.png"
+img.save(png_filename)
+print(f"Saved PNG as: {png_filename}")
