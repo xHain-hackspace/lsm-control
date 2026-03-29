@@ -2,9 +2,27 @@
 Control software for a Zeiss LSM 21 / 31
 
 
-## Notes
-install dependencies:
-```pip install pyvisa pyvisa-py pyusb```
-possibly also psutil zeroconf to avoid warnings
+## Setup Notes
+Install python modules:
 
-there might be issues with udev rules / permissions if you don't see the device
+
+```pip install pyvisa pyvisa-py pyusb```
+
+Possibly also psutil zeroconf to avoid warnings when listing ressources.
+
+Set up udev rules:
+
+```
+sudo nano /etc/udev/rules.d/99-usbtmc.rules
+```
+Add (maybe check vendor and product ID): 
+```
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2065", GROUP="plugdev", MODE="0666"
+SUBSYSTEM=="usbmisc", KERNEL=="usbtmc0", MODE="0660", GROUP="plugdev"
+```
+Then run:
+```
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+Replug LSM USB
